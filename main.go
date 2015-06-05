@@ -7,6 +7,7 @@ import (
 	"log"
 	"os"
 	"github.com/jessevdk/go-flags"
+	"github.com/fluent/fluent-logger-golang/fluent"
 )
 
 var config struct {
@@ -15,6 +16,9 @@ var config struct {
 	BindingPort string `short:"p" long:"port" required:"true" env:"PORT"`
 	ConnectionString string `short:"c" long:"db" required:"true" env:"CONNECTION_STRING"`
 	AuthenticationSecret string `short:"s" long:"secret" required:"true" env:"AUTH_SECRET"`
+	FluentPort int `long:"fluent-port" env:"FLUENT_PORT"`
+	FluentHost string `long:"fluent-host" env:"FLUENT_HOST"`
+	FluentTag string `long:"fluent-tag" env:"FLUENT_TAG"`
 }
 
 var validURL = regexp.MustCompile("(https?://([-\\w\\.]+)+(:\\d+)?(/([\\w/_\\.]*(\\?\\S+)?)?)?)")
@@ -52,6 +56,33 @@ func LogRequest(handler http.Handler) http.Handler {
         Info.Printf("%s %s %s\n", r.RemoteAddr, r.Method, r.URL)
         handler.ServeHTTP(w, r)
     })
+}
+
+/*
+ * Beacon
+ */
+
+func logPageView(u *ShortenedUrl) {
+	// Setup the logger
+	logger, err := fluent.New(fluent.Config{FluentPort: config.FluentPort, FluentHost: config.FluentHost})
+  	if err != nil {
+    	Warning.Println("Failed to connect to Fluent")
+		return
+  	}
+	defer logger.Close()
+
+	// Build the log data
+	var data = map[string]string{
+    	"a":  "3",
+    	"u": u.Url,
+		"s": u.ShortUrl,
+  	}
+
+	// Send to fluent
+  	error := logger.Post(config.FluentTag, data)
+  	if error != nil {
+    	Warning.Printf("Failed to send data to fluentd")
+  	}
 }
 
 /*
@@ -103,6 +134,10 @@ func viewHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Log the page view
+	logPageView(u)
+
+	// Redirect to target url
 	http.Redirect(w, r, u.Url, http.StatusFound)
 }
 
