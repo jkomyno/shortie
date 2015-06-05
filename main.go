@@ -10,11 +10,11 @@ import (
 )
 
 var config struct {
-	DefaultURL string `short:"d" long:"default-url" required:"true"`
-	BaseURL string `short:"u" long:"base-url" required:"true"`
-	BindingPort string `short:"p" long:"port" required:"true"`
-	ConnectionString string `short:"c" long:"db" required:"true"`
-	AuthenticationSecret string `short:"s" long:"secret" required:"true"`
+	DefaultURL string `short:"d" long:"default-url" required:"true" env:"DEFAULT_URL"`
+	BaseURL string `short:"u" long:"base-url" required:"true" env:"BASE_URL"`
+	BindingPort string `short:"p" long:"port" required:"true" env:"PORT"`
+	ConnectionString string `short:"c" long:"db" required:"true" env:"CONNECTION_STRING"`
+	AuthenticationSecret string `short:"s" long:"secret" required:"true" env:"AUTH_SECRET"`
 }
 
 var validURL = regexp.MustCompile("(https?://([-\\w\\.]+)+(:\\d+)?(/([\\w/_\\.]*(\\?\\S+)?)?)?)")
