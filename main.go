@@ -1,24 +1,24 @@
 package main
 
 import (
-	"io"
-	"net/http"
-	"regexp"
-	"log"
-	"os"
-	"github.com/jessevdk/go-flags"
 	"github.com/fluent/fluent-logger-golang/fluent"
+	"github.com/jessevdk/go-flags"
+	"io"
+	"log"
+	"net/http"
+	"os"
+	"regexp"
 )
 
 var config struct {
-	DefaultURL string `short:"d" long:"default-url" required:"true" env:"DEFAULT_URL"`
-	BaseURL string `short:"u" long:"base-url" required:"true" env:"BASE_URL"`
-	BindingPort string `short:"p" long:"port" required:"true" env:"PORT"`
-	ConnectionString string `short:"c" long:"db" required:"true" env:"CONNECTION_STRING"`
+	DefaultURL           string `short:"d" long:"default-url" required:"true" env:"DEFAULT_URL"`
+	BaseURL              string `short:"u" long:"base-url" required:"true" env:"BASE_URL"`
+	BindingPort          string `short:"p" long:"port" required:"true" env:"PORT"`
+	ConnectionString     string `short:"c" long:"db" required:"true" env:"CONNECTION_STRING"`
 	AuthenticationSecret string `short:"s" long:"secret" required:"true" env:"AUTH_SECRET"`
-	FluentPort int `long:"fluent-port" env:"FLUENT_PORT"`
-	FluentHost string `long:"fluent-host" env:"FLUENT_HOST"`
-	FluentTag string `long:"fluent-tag" env:"FLUENT_TAG"`
+	FluentPort           int    `long:"fluent-port" env:"FLUENTD_TCP_SERVICE_PORT"`
+	FluentHost           string `long:"fluent-host" env:"FLUENTD_TCP_SERVICE_HOST"`
+	FluentTag            string `long:"fluent-tag" env:"FLUENT_TAG"`
 }
 
 var validURL = regexp.MustCompile("(https?://([-\\w\\.]+)+(:\\d+)?(/([\\w/_\\.]*(\\?\\S+)?)?)?)")
@@ -28,34 +28,34 @@ var validURL = regexp.MustCompile("(https?://([-\\w\\.]+)+(:\\d+)?(/([\\w/_\\.]*
  */
 
 var (
-    Info    *log.Logger
-    Warning *log.Logger
-    Error   *log.Logger
+	Info    *log.Logger
+	Warning *log.Logger
+	Error   *log.Logger
 )
 
 func InitLogging(
-    infoHandle io.Writer,
-    warningHandle io.Writer,
-    errorHandle io.Writer) {
+	infoHandle io.Writer,
+	warningHandle io.Writer,
+	errorHandle io.Writer) {
 
-    Info = log.New(infoHandle,
-        "INFO: ",
-        log.Ldate|log.Ltime)
+	Info = log.New(infoHandle,
+		"INFO: ",
+		log.Ldate|log.Ltime)
 
-    Warning = log.New(warningHandle,
-        "WARNING: ",
-        log.Ldate|log.Ltime)
+	Warning = log.New(warningHandle,
+		"WARNING: ",
+		log.Ldate|log.Ltime)
 
-    Error = log.New(errorHandle,
-        "ERROR: ",
-        log.Ldate|log.Ltime)
+	Error = log.New(errorHandle,
+		"ERROR: ",
+		log.Ldate|log.Ltime)
 }
 
 func LogRequest(handler http.Handler) http.Handler {
-    return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-        Info.Printf("%s %s %s\n", r.RemoteAddr, r.Method, r.URL)
-        handler.ServeHTTP(w, r)
-    })
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		Info.Printf("%s %s %s\n", r.RemoteAddr, r.Method, r.URL)
+		handler.ServeHTTP(w, r)
+	})
 }
 
 /*
@@ -65,24 +65,24 @@ func LogRequest(handler http.Handler) http.Handler {
 func logPageView(u *ShortenedUrl) {
 	// Setup the logger
 	logger, err := fluent.New(fluent.Config{FluentPort: config.FluentPort, FluentHost: config.FluentHost})
-  	if err != nil {
-    	Warning.Println("Failed to connect to Fluent")
+	if err != nil {
+		Warning.Println("Failed to connect to Fluent")
 		return
-  	}
+	}
 	defer logger.Close()
 
 	// Build the log data
 	var data = map[string]string{
-    	"a":  "3",
-    	"u": u.Url,
+		"a": "3",
+		"u": u.Url,
 		"s": u.ShortUrl,
-  	}
+	}
 
 	// Send to fluent
-  	error := logger.Post(config.FluentTag, data)
-  	if error != nil {
-    	Warning.Printf("Failed to send data to fluentd")
-  	}
+	error := logger.Post(config.FluentTag, data)
+	if error != nil {
+		Warning.Printf("Failed to send data to fluentd")
+	}
 }
 
 /*
@@ -101,7 +101,7 @@ func rootHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Authenticate the request
-	if ! authenticateRequest(r, url) {
+	if !authenticateRequest(r, url) {
 		// Return an unauthorized request
 		Warning.Printf("%s Unauthorized: %s\n", r.RemoteAddr, url)
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
@@ -145,12 +145,12 @@ func main() {
 	// Load configuration
 	_, err := flags.Parse(&config)
 	if err != nil {
-    	os.Exit(1)
+		os.Exit(1)
 	}
 
 	// Setup logging
 	InitLogging(os.Stdout, os.Stdout, os.Stderr)
-	Info.Println("Listening on port :"+config.BindingPort)
+	Info.Println("Listening on port :" + config.BindingPort)
 
 	// Start the web server
 	mainHandler := http.HandlerFunc(viewHandler)
