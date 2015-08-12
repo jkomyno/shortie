@@ -85,6 +85,9 @@ func (u *ShortenedUrl) save() error {
 
     // Insert into the DB
     res, err := db.Exec("INSERT INTO urls (target) VALUES (?)", u.Url)
+    if err != nil {
+        return err
+    }
 
     // Get the inserted ID
     id, err := res.LastInsertId()
