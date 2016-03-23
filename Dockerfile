@@ -6,8 +6,8 @@ RUN go get github.com/jessevdk/go-flags
 
 RUN go get github.com/fluent/fluent-logger-golang/fluent
 
-ADD . /go/src/github.com/tobyhughes/shortie
+ADD . /go/src/github.com/rebeccahughes/shortie
 
-RUN go install github.com/tobyhughes/shortie
+RUN go install github.com/rebeccahughes/shortie
 
 ENTRYPOINT /go/bin/shortie

@@ -1,3 +1,5 @@
+run-migrator
+migrator.go
 push-reqs
 shortie
 run

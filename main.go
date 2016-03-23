@@ -91,6 +91,7 @@ func logPageView(u *ShortenedUrl) {
 
 func rootHandler(w http.ResponseWriter, r *http.Request) {
 	url := r.FormValue("url")
+	shortUrl := r.FormValue("alias")
 
 	// Validate the url
 	if !validURL.MatchString(url) {
@@ -108,8 +109,13 @@ func rootHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Generate the new shortUrl
+	if len(shortUrl) == 0 {
+		shortUrl = RandStringBytes(6);
+	}
+
 	// Save out and return
-	u := &ShortenedUrl{Url: url}
+	u := &ShortenedUrl{Url: url, ShortUrl: shortUrl}
 	err := u.save()
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)

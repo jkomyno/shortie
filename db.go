@@ -3,6 +3,7 @@ package main
 import (
     "database/sql"
     _ "github.com/go-sql-driver/mysql"
+    "math/rand"
 )
 
 type ShortenedUrl struct {
@@ -10,10 +11,17 @@ type ShortenedUrl struct {
 	Url      string
 }
 
-func loadFromShortUrl(shortUrl string) (*ShortenedUrl, error) {
-    // Convert the shortUrl to a primary key
-    pk := decodeURL(shortUrl)
+const letterBytes = "abcdefghijklmnopqrstuvwxyz"
 
+func RandStringBytes(n int) string {
+    b := make([]byte, n)
+    for i := range b {
+        b[i] = letterBytes[rand.Intn(len(letterBytes))]
+    }
+    return string(b)
+}
+
+func loadFromShortUrl(shortUrl string) (*ShortenedUrl, error) {
     // Setup the database connection
     db, err := sql.Open("mysql", config.ConnectionString)
     if err != nil {
@@ -22,7 +30,7 @@ func loadFromShortUrl(shortUrl string) (*ShortenedUrl, error) {
     defer db.Close()
 
     // Prepare the statement for reading data
-    stmtOut, err := db.Prepare("SELECT target FROM urls WHERE id = ?")
+    stmtOut, err := db.Prepare("SELECT target FROM urls WHERE alias = ?")
     if err != nil {
         return nil, err
     }
@@ -32,7 +40,7 @@ func loadFromShortUrl(shortUrl string) (*ShortenedUrl, error) {
     u := &ShortenedUrl{ShortUrl: shortUrl}
 
     // Perform the query on the DB
-    err = stmtOut.QueryRow(pk).Scan(&u.Url)
+    err = stmtOut.QueryRow(shortUrl).Scan(&u.Url)
     if err != nil {
         return nil, err
     }
@@ -75,27 +83,13 @@ func (u *ShortenedUrl) save() error {
     }
     defer db.Close()
 
-    // See if we already have this url in the DB
-    u2, err := loadFromUrl(u.Url)
-    if err == nil {
-        // We found it so return it
-        u.ShortUrl = u2.ShortUrl
+    // Insert into the DB
+    res, err := db.Exec("INSERT INTO urls (target, alias) VALUES (?, ?)", u.Url, u.ShortUrl)
+    if err != nil {
+        return err
+    }
+    if res == nil {
         return nil
     }
-
-    // Insert into the DB
-    res, err := db.Exec("INSERT INTO urls (target) VALUES (?)", u.Url)
-    if err != nil {
-        return err
-    }
-
-    // Get the inserted ID
-    id, err := res.LastInsertId()
-    if err != nil {
-        return err
-    }
-
-    // Generate the shortURL from the ID
-    u.ShortUrl = generateURL(id)
     return nil
 }
